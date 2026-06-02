@@ -1,0 +1,21 @@
+movieId,title,genres,year,rating
+1,Toy Story,Adventure|Animation|Children|Comedy|Fantasy,1995,4.5
+2,Jumanji,Adventure|Children|Fantasy,1995,3.5
+3,Grumpier Old Men,Comedy|Romance,1995,3.0
+4,Waiting to Exhale,Comedy|Drama|Romance,1995,2.5
+5,Father of the Bride Part II,Comedy,1995,3.0
+6,Heat,Action|Crime|Thriller,1995,4.0
+7,Sabrina,Comedy|Romance,1995,3.5
+8,Tom and Huck,Adventure|Children,1995,3.0
+9,Sudden Death,Action,1995,2.5
+10,GoldenEye,Action|Adventure|Thriller,1995,3.5
+11,The Matrix,Action|Sci-Fi,1999,5.0
+12,Inception,Action|Adventure|Sci-Fi|Thriller,2010,4.8
+13,Interstellar,Adventure|Drama|Sci-Fi,2014,4.7
+14,The Dark Knight,Action|Crime|Drama|Thriller,2008,4.9
+15,Pulp Fiction,Comedy|Crime|Drama|Thriller,1994,4.8
+16,Forrest Gump,Comedy|Drama|Romance|War,1994,4.6
+17,The Shawshank Redemption,Crime|Drama,1994,4.9
+18,The Godfather,Crime|Drama,1972,4.8
+19,Jurassic Park,Action|Adventure|Sci-Fi|Thriller,1993,4.2
+20,Avatar,Action|Adventure|Fantasy|Sci-Fi,2009,4.0
