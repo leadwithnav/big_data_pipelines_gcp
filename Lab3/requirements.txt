@@ -1,0 +1,2 @@
+# Apache Beam SDK with all Google Cloud dependencies (Pub/Sub, Dataflow, GCS, etc.)
+apache-beam[gcp]==2.56.0

@@ -97,7 +97,7 @@ export CLUSTER_REGION=$(gcloud dataproc clusters list --format="value(config.gce
 gcloud dataproc jobs submit pyspark lab_02_streaming.py \
     --cluster=$CLUSTER_NAME \
     --region=$CLUSTER_REGION \
-    --properties=spark.jars.packages=org.apache.spark:spark-avro_2.12:3.3.0 \
+    --properties=^#^spark.jars.packages=org.apache.bahir:spark-sql-streaming-pubsub_2.12:2.4.0,org.apache.spark:spark-avro_2.12:3.3.0 \
     -- $PROJECT_ID orders-input orders-output
 ```
 
