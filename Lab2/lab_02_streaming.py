@@ -87,11 +87,8 @@ def main():
 
     # 7. Write Stream to Pub/Sub
     print(f"Writing to {output_topic}...")
-    query = output_df.writeStream \
-        .format("pubsub") \
-        .option("project", project_id) \
-        .option("topic", output_topic) \
-        .option("checkpointLocation", f"gs://{project_id}-spark-checkpoints/lab02-avro") \
+    output_df.writeStream \
+        .format("console") \
         .outputMode("append") \
         .start()
 
