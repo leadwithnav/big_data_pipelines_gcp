@@ -29,7 +29,7 @@ def main():
     # 2. Read the CSV Dataset
     # We will read 'movies.csv' which should be present in the same directory, 
     # or passed as an argument/HDFS path in a real Dataproc job.
-    file_path = "file:///movies.csv"
+    file_path = "movies.csv"
     print(f"\nLoading dataset from {file_path}...")
     
     try:

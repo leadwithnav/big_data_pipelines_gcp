@@ -36,7 +36,8 @@ To submit to a Dataproc cluster:
 ```bash
 gcloud dataproc jobs submit pyspark lab_01_intro.py \
     --cluster=YOUR_CLUSTER_NAME \
-    --region=YOUR_REGION
+    --region=YOUR_REGION \
+    --files=movies.csv
 ```
 
 ### Option B: Using the Jupyter Notebook (`lab_01_intro.ipynb`)
