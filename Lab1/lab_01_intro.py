@@ -26,10 +26,15 @@ def main():
     # To reduce verbosity of logs, you can set log level to WARN or ERROR
     spark.sparkContext.setLogLevel("WARN")
 
-    # 2. Read the CSV Dataset
-    # We will read 'movies.csv' which should be present in the same directory, 
-    # or passed as an argument/HDFS path in a real Dataproc job.
-    file_path = "movies.csv"
+    import os
+    from pyspark import SparkFiles
+    
+    # Check if the file is distributed via SparkFiles (e.g., submitted with --files on Dataproc)
+    file_path = SparkFiles.get("movies.csv")
+    if not os.path.exists(file_path):
+        # Fallback to the local directory (e.g., when running locally)
+        file_path = "movies.csv"
+        
     print(f"\nLoading dataset from {file_path}...")
     
     try:
