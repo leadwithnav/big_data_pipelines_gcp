@@ -1,0 +1,8 @@
+# Fix for Python 3.12: pkg_resources was removed, setuptools restores it
+setuptools
+
+# Google Cloud Pub/Sub Client Library (needed for the publisher)
+google-cloud-pubsub>=2.20.0
+
+# Apache Beam SDK with Google Cloud Platform dependencies
+apache-beam[gcp]>=2.58.0

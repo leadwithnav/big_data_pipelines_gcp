@@ -155,6 +155,27 @@ You should see the message transformed to **`HELLO FROM APACHE BEAM`** in the `D
 
 ---
 
+## Troubleshooting
+
+### Error: "The Dataflow service agent cannot access the worker service account"
+
+This happens when the Google-managed Dataflow service agent lacks permission to assume the identity of your worker service account (Compute Engine default service account). To fix this, run the following commands in your Cloud Shell terminal:
+
+```bash
+# Get your Project ID and Project Number
+export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
+
+# Grant the Cloud Dataflow Service Agent role
+gcloud iam service-accounts add-iam-policy-binding \
+    ${PROJECT_NUMBER}-compute@developer.gserviceaccount.com \
+    --member="serviceAccount:service-${PROJECT_NUMBER}@dataflow-service-producer-prod.iam.gserviceaccount.com" \
+    --role="roles/dataflow.serviceAgent" \
+    --project=${PROJECT_ID}
+```
+
+---
+
 ## Step 10: Cleanup
 
 When finished, cancel the Dataflow job to avoid unnecessary charges:
