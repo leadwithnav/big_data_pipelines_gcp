@@ -47,12 +47,15 @@ echo "Cluster Name : $CLUSTER_NAME"
 
 ---
 
-## Step 2: Enable Dataproc and Compute Engine APIs
+## Step 2: Enable Dataproc, Compute Engine, and Resource Manager APIs
 
 Run the following command to enable the necessary Google Cloud APIs in your project:
 
 ```bash
-gcloud services enable dataproc.googleapis.com compute.googleapis.com
+gcloud services enable \
+    dataproc.googleapis.com \
+    compute.googleapis.com \
+    cloudresourcemanager.googleapis.com
 ```
 
 ---
