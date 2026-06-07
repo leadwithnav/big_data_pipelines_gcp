@@ -1,24 +1,17 @@
-# Lab 0: Exploring Dataproc, YARN, and HDFS
+# Lab 0: Google Cloud Dataproc and YARN Exploration
 
-In this introductory lab, you will get hands-on experience with the core components of a managed Hadoop ecosystem on Google Cloud Platform:
+In this introductory lab, you will get hands-on experience with:
 1. **Google Cloud Dataproc:** GCP's fully-managed Apache Spark and Apache Hadoop service.
-2. **Hadoop Distributed File System (HDFS):** The standard distributed storage layer where you will load and read telemetry data using the `hdfs dfs` CLI.
-3. **YARN (Yet Another Resource Negotiator):** The cluster resource manager and job scheduler. You will submit a PySpark application and inspect how YARN schedules and manages it via the **YARN Resource Manager UI**.
+2. **YARN (Yet Another Resource Negotiator):** The cluster resource manager and job scheduler. You will submit a Spark application and inspect how YARN schedules and manages it via the **YARN Resource Manager UI**.
 
 ```
 +─────────────────────────────────────────────────────────────────────────────+
 |                          Google Cloud Dataproc                              |
 |                                                                             |
 |   +───────────────────────────────+      YARN Resource Manager UI           |
-|   |         HDFS Storage          |      - Tracks Spark Application         |
-|   |   - /user/telemetry/          |      - Displays memory/CPU containers   |
-|   |     (sensor_data.csv)         |      - Access logs in real-time         |
-|   +───────────────────────────────+                                         |
-|                   ▲                                                         |
-|                   │ (Spark Reads & Writes)                                  |
-|   +───────────────────────────────+                                         |
-|   |        pyspark_job.py         |                                         |
-|   |   (Aggregations per device)   |                                         |
+|   |         Cloud Shell           |      - Tracks Spark Application         |
+|   |   - Submits Spark job        | ───> - Displays memory/CPU containers   |
+|   |     (Spark Pi Example)        |      - Access logs in real-time         |
 |   +───────────────────────────────+                                         |
 +─────────────────────────────────────────────────────────────────────────────+
 ```
@@ -58,6 +51,8 @@ echo "Cluster Name : $CLUSTER_NAME"
 
 Create a cost-effective single-node cluster. We explicitly enable **Component Gateway** to allow secure web access to YARN and other Hadoop UIs directly from our browser.
 
+> ⏳ **Note:** Creating the Dataproc cluster typically takes **5 to 7 minutes** to complete as it provisions the VM instances, installs the Hadoop ecosystem, and configures cluster software.
+
 ```bash
 gcloud dataproc clusters create ${CLUSTER_NAME} \
     --region=${REGION} \
@@ -70,106 +65,50 @@ gcloud dataproc clusters create ${CLUSTER_NAME} \
 
 ---
 
-## Step 3: Copy Telemetry Dataset to the Master Node
+## Step 3: Open the YARN Resource Manager UI
 
-To load files into HDFS, we must first copy our dataset to the master node's filesystem. From your local Cloud Shell terminal, run:
-
-```bash
-# Verify you are in the Lab0 folder
-cd ~/big_data_pipelines_gcp/Lab0
-
-# SCP the local sensor_data.csv to the master VM's home directory
-gcloud compute scp sensor_data.csv ${CLUSTER_NAME}-m:~ \
-    --zone=${REGION}-b \
-    --project=${PROJECT_ID}
-```
-
----
-
-## Step 4: SSH into Master Node & Run HDFS Commands
-
-SSH into the cluster's master node to access the HDFS command-line interface.
-
-1. **SSH Connection:**
-   ```bash
-   gcloud compute ssh ${CLUSTER_NAME}-m \
-       --zone=${REGION}-b \
-       --project=${PROJECT_ID}
-   ```
-   *(Accept prompt to generate SSH keys if this is your first connection).*
-
-2. **Run HDFS commands:**
-   Use the Hadoop FS shell utility (`hdfs dfs`) to interact with HDFS:
-
-   ```bash
-   # A. Create a directory in HDFS for raw telemetry data
-   hdfs dfs -mkdir -p /user/telemetry
-   
-   # B. Copy the dataset from master node local disk to HDFS
-   hdfs dfs -put ~/sensor_data.csv /user/telemetry/
-   
-   # C. List the contents of the HDFS directory to verify upload
-   hdfs dfs -ls /user/telemetry/
-   
-   # D. Read the first 10 lines of the file inside HDFS
-   hdfs dfs -cat /user/telemetry/sensor_data.csv | head -n 10
-   ```
-
-Keep this SSH terminal open. Open a **new Cloud Shell tab** to submit your Spark job.
-
----
-
-## Step 5: Submit PySpark Job to the YARN Scheduler
-
-In your new Cloud Shell tab, navigate to the lab directory and submit the PySpark job to your cluster:
-
-```bash
-cd ~/big_data_pipelines_gcp/Lab0
-
-gcloud dataproc jobs submit pyspark pyspark_job.py \
-    --cluster=${CLUSTER_NAME} \
-    --region=${REGION} \
-    --project=${PROJECT_ID} \
-    -- \
-    --input=hdfs:///user/telemetry/sensor_data.csv \
-    --output=hdfs:///user/telemetry/output
-```
-
-YARN will negotiate resources, allocate containers on the master node, schedule tasks, and process the HDFS input file. The aggregation output (record counts and averages grouped by device ID) will print directly to the job log.
-
----
-
-## Step 6: Explore the YARN Resource Manager UI
-
-Thanks to Component Gateway, you can explore the YARN ResourceManager web panel:
+Thanks to Component Gateway, you can explore the YARN ResourceManager web panel securely without setting up SSH tunnels:
 
 1. Open the [GCP Console](https://console.cloud.google.com).
 2. Navigate to **Dataproc → Clusters**.
 3. Click on your running cluster: **`lab0-dataproc-cluster`**.
 4. Go to the **Web Interfaces** tab.
 5. Click the link for **YARN ResourceManager**.
-6. The dashboard will load. Under **Applications**, you can see:
-   - Your completed PySpark job (`Lab0-HDFS-Telemetry-Aggregator`).
-   - The status of allocated Vcores, Containers, and Memory.
-   - Click the **History** or **Logs** links to see job logs captured by YARN.
+6. The dashboard will load showing 0 active or completed applications. Keep this tab open.
 
 ---
 
-## Step 7: Verify Results in HDFS
+## Step 4: Submit a Spark Job from the Cloud Shell Terminal
 
-Return to your **Master Node SSH terminal** (Step 4) and list/read the output created by Spark in HDFS:
+Return to your Cloud Shell terminal and run the following command to submit a Spark job. We will use a pre-packaged built-in **Spark Pi** example jar located on the cluster master VM to calculate Pi:
 
 ```bash
-# List output files generated by Spark in HDFS
-hdfs dfs -ls /user/telemetry/output/
-
-# Read the aggregated CSV results
-hdfs dfs -cat /user/telemetry/output/*.csv
+gcloud dataproc jobs submit spark \
+    --cluster=${CLUSTER_NAME} \
+    --region=${REGION} \
+    --project=${PROJECT_ID} \
+    --class=org.apache.spark.examples.SparkPi \
+    --jars=file:///usr/lib/spark/examples/jars/spark-examples.jar \
+    -- 1000
 ```
+
+This submits the application to the Dataproc master node, which delegates the job execution to YARN.
 
 ---
 
-## Step 8: Cleanup
+## Step 5: Verify the Application on YARN UI
+
+1. Switch back to your **YARN ResourceManager** browser tab (opened in Step 3).
+2. Refresh the page. You should now see the active Spark application running under the name:
+   `org.apache.spark.examples.SparkPi`
+3. Check the application state as it transitions from `ACCEPTED` to `RUNNING`, and finally to `FINISHED` (usually takes 30-45 seconds).
+4. Inspect the application statistics:
+   - Click the application ID (e.g. `application_123456789_0001`) to see container details, allocated memory, vCPUs, and the scheduler queue allocation.
+   - Click the **Logs** or **History** links to inspect the standard stdout/stderr logs managed by YARN.
+
+---
+
+## Step 6: Cleanup
 
 When finished, delete the Dataproc cluster to avoid charges:
 
