@@ -47,7 +47,17 @@ echo "Cluster Name : $CLUSTER_NAME"
 
 ---
 
-## Step 2: Create a Dataproc Cluster
+## Step 2: Enable Dataproc and Compute Engine APIs
+
+Run the following command to enable the necessary Google Cloud APIs in your project:
+
+```bash
+gcloud services enable dataproc.googleapis.com compute.googleapis.com
+```
+
+---
+
+## Step 3: Create a Dataproc Cluster
 
 Create a cost-effective single-node cluster. We explicitly enable **Component Gateway** to allow secure web access to YARN and other Hadoop UIs directly from our browser.
 
@@ -65,7 +75,7 @@ gcloud dataproc clusters create ${CLUSTER_NAME} \
 
 ---
 
-## Step 3: Open the YARN Resource Manager UI
+## Step 4: Open the YARN Resource Manager UI
 
 Thanks to Component Gateway, you can explore the YARN ResourceManager web panel securely without setting up SSH tunnels:
 
@@ -78,7 +88,7 @@ Thanks to Component Gateway, you can explore the YARN ResourceManager web panel 
 
 ---
 
-## Step 4: Submit a Spark Job from the Cloud Shell Terminal
+## Step 5: Submit a Spark Job from the Cloud Shell Terminal
 
 Return to your Cloud Shell terminal and run the following command to submit a Spark job. We will use a pre-packaged built-in **Spark Pi** example jar located on the cluster master VM to calculate Pi:
 
@@ -96,9 +106,9 @@ This submits the application to the Dataproc master node, which delegates the jo
 
 ---
 
-## Step 5: Verify the Application on YARN UI
+## Step 6: Verify the Application on YARN UI
 
-1. Switch back to your **YARN ResourceManager** browser tab (opened in Step 3).
+1. Switch back to your **YARN ResourceManager** browser tab (opened in Step 4).
 2. Refresh the page. You should now see the active Spark application running under the name:
    `org.apache.spark.examples.SparkPi`
 3. Check the application state as it transitions from `ACCEPTED` to `RUNNING`, and finally to `FINISHED` (usually takes 30-45 seconds).
@@ -108,7 +118,7 @@ This submits the application to the Dataproc master node, which delegates the jo
 
 ---
 
-## Step 6: Cleanup
+## Step 7: Cleanup
 
 When finished, delete the Dataproc cluster to avoid charges:
 
