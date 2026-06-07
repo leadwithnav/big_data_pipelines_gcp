@@ -1,0 +1,5 @@
+# Fix for Python 3.12
+setuptools
+
+# Google Cloud Pub/Sub Client Library
+google-cloud-pubsub>=2.20.0
