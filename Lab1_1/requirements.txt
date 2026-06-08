@@ -1,0 +1,5 @@
+# Fix for Python 3.12
+setuptools
+
+# PySpark (pre-installed on Dataproc but listed for local notebook execution)
+pyspark>=3.5.0

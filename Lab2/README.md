@@ -34,7 +34,43 @@ echo "Project ID : $PROJECT_ID"
 
 ---
 
-## Step 2: Install Requirements
+## Step 2: Enable the Cloud Pub/Sub API
+
+Before running the publisher or subscriber scripts, you must ensure that the Cloud Pub/Sub API is enabled in your Google Cloud project. You can enable it using either of the following methods:
+
+### Method A: Using Cloud Shell (Recommended)
+Run the following command in your Cloud Shell terminal to enable the Cloud Pub/Sub API:
+```bash
+gcloud services enable pubsub.googleapis.com --project=${PROJECT_ID}
+```
+
+### Method B: Using Google Cloud Console
+1. Open your browser and navigate to the [API Library page for Cloud Pub/Sub](https://console.developers.google.com/apis/api/pubsub.googleapis.com/overview?project=upgradlabs-1750853349290). Alternatively, construct the URL for your specific project: `https://console.developers.google.com/apis/api/pubsub.googleapis.com/overview?project=YOUR_PROJECT_ID`
+2. Ensure your active project is selected in the top navigation bar.
+3. Click the **Enable** button.
+
+> [!NOTE]
+> If you run the publisher/subscriber scripts and see an error like:
+> `Cloud Pub/Sub API has not been used in project upgradlabs-1750853349290 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/pubsub.googleapis.com/overview?project=upgradlabs-1750853349290 then retry.`
+> Ensure you run the `gcloud services enable pubsub.googleapis.com` command or click the activation link above and wait 1-2 minutes for the changes to propagate.
+
+---
+
+## Step 3: Create Pub/Sub Topic and Subscription
+
+Run the following commands in your Cloud Shell terminal to create the topic and its subscription:
+
+```bash
+# Create the Pub/Sub Topic
+gcloud pubsub topics create lab2-topic --project=${PROJECT_ID}
+
+# Create a pull subscription bound to the topic
+gcloud pubsub subscriptions create lab2-sub --topic=lab2-topic --project=${PROJECT_ID}
+```
+
+---
+
+## Step 4: Install Requirements
 
 Navigate to the `Lab2` directory and install the necessary dependencies:
 
@@ -48,48 +84,45 @@ pip install -r requirements.txt
 
 ---
 
-## Step 3: Run the Telemetry Publisher
+## Step 5: Run the Telemetry Publisher
 
-Start the publisher. It reads the local `sensor_data.csv` (1000 randomized records of device IDs `1`, `2`, `3`, `4`, `5`), injects the current UTC timestamp, and publishes a message every `0.5` seconds to `lab2-topic`.
-
-*(If the topic does not exist, the script attempts to create it automatically).*
+Start the publisher. It reads the local `sensor_data.csv` (containing randomized device records) and publishes each record directly to `lab2-topic`.
 
 ```bash
-python publisher.py --project=${PROJECT_ID} --topic=lab2-topic --interval=0.5
+python publisher.py --project=${PROJECT_ID}
 ```
 
 You should see logs indicating successful publications:
 ```
-2026-06-04 13:10:01 | INFO | Published message ID: 10423985020 | Payload: {"device_id": "4", "temperature": 28.5, "humidity": 65.3, "status": "OK", "timestamp": "2026-06-04T07:40:01.123456+00:00"}
-2026-06-04 13:10:02 | INFO | Published message ID: 10423985028 | Payload: {"device_id": "2", "temperature": 18.2, "humidity": 45.1, "status": "OK", "timestamp": "2026-06-04T07:40:01.628901+00:00"}
+Publishing records from sensor_data.csv to projects/YOUR_PROJECT_ID/topics/lab2-topic...
+Published message ID: 10423985020 | Payload: {"device_id": "4", "temperature": "28.5", "humidity": "65.3", "status": "OK"}
+Published message ID: 10423985028 | Payload: {"device_id": "2", "temperature": "18.2", "humidity": "45.1", "status": "OK"}
 ```
 
 Keep this script running. Open a **new Cloud Shell tab/terminal** to execute the subscriber.
 
 ---
 
-## Step 4: Run the Telemetry Subscriber
+## Step 6: Run the Telemetry Subscriber
 
 In your second Cloud Shell terminal tab, navigate to the `Lab2` directory and run the subscriber:
-
-*(If the subscription does not exist, the script attempts to create it automatically and bind it to the topic).*
 
 ```bash
 cd ~/big_data_pipelines_gcp/Lab2
 
-python subscriber.py --project=${PROJECT_ID} --subscription=lab2-sub --topic=lab2-topic
+python subscriber.py --project=${PROJECT_ID}
 ```
 
 Once the subscriber starts, you will see it retrieve and acknowledge the sensor readings published by `publisher.py` in real-time:
 ```
-2026-06-04 13:10:05 | INFO | Listening for messages on projects/YOUR_PROJECT_ID/subscriptions/lab2-sub... Press Ctrl+C to stop.
-2026-06-04 13:10:05 | INFO | Received message ID: 10423985020 | Payload: {"device_id": "4", "temperature": 28.5, "humidity": 65.3, "status": "OK", "timestamp": "2026-06-04T07:40:01.123456+00:00"}
-2026-06-04 13:10:05 | INFO | Received message ID: 10423985028 | Payload: {"device_id": "2", "temperature": 18.2, "humidity": 45.1, "status": "OK", "timestamp": "2026-06-04T07:40:01.628901+00:00"}
+Listening for messages on projects/YOUR_PROJECT_ID/subscriptions/lab2-sub... Press Ctrl+C to stop.
+Received message ID: 10423985020 | Payload: {"device_id": "4", "temperature": "28.5", "humidity": "65.3", "status": "OK"}
+Received message ID: 10423985028 | Payload: {"device_id": "2", "temperature": "18.2", "humidity": "45.1", "status": "OK"}
 ```
 
 ---
 
-## Step 5: Cleanup
+## Step 7: Cleanup
 
 Once you have verified the publish/subscribe logs, clean up resources to prevent charges:
 
@@ -97,6 +130,6 @@ Once you have verified the publish/subscribe logs, clean up resources to prevent
 2. **Stop the Subscriber:** Press `Ctrl+C` in the second terminal tab running `subscriber.py`.
 3. **Delete Pub/Sub resources:**
    ```bash
-   gcloud pubsub subscriptions delete lab2-sub
-   gcloud pubsub topics delete lab2-topic
+   gcloud pubsub subscriptions delete lab2-sub --project=${PROJECT_ID}
+   gcloud pubsub topics delete lab2-topic --project=${PROJECT_ID}
    ```
