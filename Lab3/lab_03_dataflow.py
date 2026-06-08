@@ -118,7 +118,8 @@ def run(argv=None):
         "catalog_properties": {
             "catalog-impl": "org.apache.iceberg.hadoop.HadoopCatalog",
             "warehouse": known_args.warehouse_path
-        }
+        },
+        "triggering_frequency_seconds": 30
     }
 
     logging.info("Starting Lab 3 Beam-to-Iceberg streaming pipeline...")
