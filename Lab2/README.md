@@ -27,7 +27,7 @@ Activate Cloud Shell (`>_` in the top right of the GCP Console) and set up the p
 
 ```bash
 # Auto-detect your active GCP Project ID
-export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_ID=<your project id>
 
 echo "Project ID : $PROJECT_ID"
 ```
@@ -43,17 +43,6 @@ Run the following command in your Cloud Shell terminal to enable the Cloud Pub/S
 ```bash
 gcloud services enable pubsub.googleapis.com --project=${PROJECT_ID}
 ```
-
-### Method B: Using Google Cloud Console
-1. Open your browser and navigate to the [API Library page for Cloud Pub/Sub](https://console.developers.google.com/apis/api/pubsub.googleapis.com/overview?project=upgradlabs-1750853349290). Alternatively, construct the URL for your specific project: `https://console.developers.google.com/apis/api/pubsub.googleapis.com/overview?project=YOUR_PROJECT_ID`
-2. Ensure your active project is selected in the top navigation bar.
-3. Click the **Enable** button.
-
-> [!NOTE]
-> If you run the publisher/subscriber scripts and see an error like:
-> `Cloud Pub/Sub API has not been used in project upgradlabs-1750853349290 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/pubsub.googleapis.com/overview?project=upgradlabs-1750853349290 then retry.`
-> Ensure you run the `gcloud services enable pubsub.googleapis.com` command or click the activation link above and wait 1-2 minutes for the changes to propagate.
-
 ---
 
 ## Step 3: Create Pub/Sub Topic and Subscription
@@ -103,13 +92,14 @@ Keep this script running. Open a **new Cloud Shell tab/terminal** to execute the
 
 ---
 
+# Open a New Terminal for Next Step
 ## Step 6: Run the Telemetry Subscriber
 
 In your second Cloud Shell terminal tab, navigate to the `Lab2` directory and run the subscriber:
 
 ```bash
 cd ~/big_data_pipelines_gcp/Lab2
-
+export PROJECT_ID=<your project id>
 python subscriber.py --project=${PROJECT_ID}
 ```
 
