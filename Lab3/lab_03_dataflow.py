@@ -51,8 +51,7 @@ beam.coders.registry.register_coder(SensorReading, beam.coders.RowCoder)
 class ParseAndFilterFn(beam.DoFn):
     """
     Parses incoming raw bytes into JSON, filters out records that do not have 
-    a status of "OK" (i.e. filters out "ERROR" states), and maps the payload 
-    to a SensorReading NamedTuple.
+    a status of "OK" (i.e. filters out "ERROR" states), and yields a dictionary.
     """
 
     def process(self, element):
@@ -70,13 +69,13 @@ class ParseAndFilterFn(beam.DoFn):
 
             # Filtering logic: Only keep records with status "OK"
             if status == "OK":
-                yield SensorReading(
-                    device_id=str(device_id),
-                    temperature=float(temperature),
-                    humidity=float(humidity),
-                    status=str(status),
-                    timestamp=str(timestamp)
-                )
+                yield {
+                    "device_id": str(device_id),
+                    "temperature": float(temperature),
+                    "humidity": float(humidity),
+                    "status": str(status),
+                    "timestamp": str(timestamp)
+                }
             else:
                 logging.debug(f"Filtered out record with status {status}: {payload}")
 
@@ -133,10 +132,13 @@ def run(argv=None):
             # Step 1: Read raw bytes from Pub/Sub
             | "ReadFromPubSub"     >> beam.io.ReadFromPubSub(topic=known_args.input_topic)
 
-            # Step 2: Parse, Filter records where status != "OK", and Map to NamedTuple Row
+            # Step 2: Parse and Filter records where status != "OK"
             | "ParseAndFilter"     >> beam.ParDo(ParseAndFilterFn())
 
-            # Step 3: Write schema-aware Rows to GCS Iceberg Table
+            # Step 3: Map to NamedTuple schema-aware objects and specify output type
+            | "MapToRow"           >> beam.Map(lambda x: SensorReading(**x)).with_output_types(SensorReading)
+
+            # Step 4: Write schema-aware Rows to GCS Iceberg Table
             | "WriteToIceberg"     >> Write("iceberg", config=iceberg_config)
         )
 
