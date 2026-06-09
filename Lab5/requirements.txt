@@ -1,8 +1,0 @@
-# Fix for Python 3.12: pkg_resources was removed, setuptools restores it
-setuptools
-
-# Google Cloud Pub/Sub Client Library
-google-cloud-pubsub>=2.20.0
-
-# Apache Beam SDK (using 2.61.0 or later to support Managed Iceberg I/O)
-apache-beam[gcp]>=2.61.0
