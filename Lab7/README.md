@@ -15,7 +15,7 @@ Open **Cloud Shell** and run the following commands to create a new GCS bucket w
 
 ```bash
 export PROJECT_ID=$(gcloud config get-value project)
-export BUCKET_NAME="${PROJECT_ID}-iceberg-warehouse"
+export BUCKET_NAME="${PROJECT_ID}-bq-iceberg-warehouse"
 
 # Create a storage bucket in the us-central1 region
 gcloud storage buckets create gs://${BUCKET_NAME} --location=us-central1
@@ -46,7 +46,7 @@ Now that your connection is created and has a service account, you must grant it
 Run the following in **Cloud Shell** (replace `CONNECTION_SA` with the email you copied in Step 2):
 ```bash
 export PROJECT_ID=$(gcloud config get-value project)
-export BUCKET_NAME="${PROJECT_ID}-iceberg-warehouse"
+export BUCKET_NAME="${PROJECT_ID}-bq-iceberg-warehouse"
 export CONNECTION_SA="bqcx-xxxx@gcp-sa-bigquery-condel.iam.gserviceaccount.com"
 
 # Grant Storage permissions to the Connection Service Account
@@ -103,17 +103,19 @@ Now, return to the **BigQuery SQL Editor** to create your schema dataset and the
 
 2. Create the managed Iceberg table (pointing to the bucket created in Step 1):
    ```sql
-   CREATE OR REPLACE TABLE dataset3.iceberg_tbl1 (
-       id INT64,
-       sensor_id STRING,
-       temperature FLOAT64
-   )
-   WITH CONNECTION `upgradlabs-1750853349290.us-central1.my_gcs_connection`
-   OPTIONS (
-     file_format = 'PARQUET',
-     table_format = 'ICEBERG',
-     storage_uri = 'gs://upgradlabs-1750853349290-iceberg-warehouse/warehouse'
-   );
+        CREATE OR REPLACE TABLE dataset3.iceberg_tbl1 (
+          device_id STRING,
+          date STRING,
+          avg_temperature FLOAT64,
+          avg_humidity FLOAT64,
+          reading_count INT64
+      )
+      WITH CONNECTION `upgradlabs-1750853349290.us-central1.my_gcs_connection`
+      OPTIONS (
+        file_format = 'PARQUET',
+        table_format = 'ICEBERG',
+        storage_uri = 'gs://upgradlabs-1750853349290-iceberg-warehouse/warehouse/iceberg_tbl1'
+      );
    ```
 
 ---
@@ -125,12 +127,17 @@ Run the following statements in the editor to demonstrate write operations:
 #### 1. Ingest Data (Insert)
 ```sql
 INSERT INTO dataset3.iceberg_tbl1
+(
+  device_id,
+  date,
+  avg_temperature,
+  avg_humidity,
+  reading_count
+)
 VALUES
-  (1, 'sensor_101', 25.5),
-  (2, 'sensor_102', 28.1),
-  (3, 'sensor_103', 22.8),
-  (4, 'sensor_104', 31.2),
-  (5, 'sensor_105', 27.4);
+  ('sensor_001', '2026-06-10', 25.5, 60.2, 1440),
+  ('sensor_002', '2026-06-10', 27.1, 55.8, 1380),
+  ('sensor_003', '2026-06-10', 23.9, 65.1, 1420);
 ```
 
 #### 2. Verify Ingested Records
@@ -141,14 +148,14 @@ SELECT * FROM dataset3.iceberg_tbl1;
 #### 3. Modify Records (Update)
 ```sql
 UPDATE dataset3.iceberg_tbl1
-SET temperature = 26.8
-WHERE sensor_id = 'sensor_101';
+SET avg_temperature = 26.8
+WHERE device_id = 'sensor_001';
 ```
 
 #### 4. Drop Records (Delete)
 ```sql
 DELETE FROM dataset3.iceberg_tbl1
-WHERE temperature > 30.0;
+WHERE avg_temperature > 30.0;
 ```
 
 ---
@@ -169,7 +176,7 @@ Run the following query to view the table's state as of 5 minutes ago (before th
 SELECT * 
 FROM dataset3.iceberg_tbl1 FOR SYSTEM_TIME AS OF TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 5 MINUTE);
 ```
-*Observe that all 5 original rows appear, and the temperature for `sensor_101` returns to its original value (`25.5`), showing that Iceberg successfully traveled back in time!*
+*Observe that all 5 original rows appear, and the temperature for `sensor_001` returns to its original value (`25.5`), showing that Iceberg successfully traveled back in time!*
 
 ---
 
