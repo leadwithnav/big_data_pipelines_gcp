@@ -1,8 +1,8 @@
 """
-Airflow Orchestration DAG for Lab 7.
+Airflow Orchestration DAG for Lab 8.
 Manages the lifecycle of an ephemeral Dataproc cluster:
 1. Spin up Dataproc cluster pre-configured with Iceberg Spark jar.
-2. Submit the PySpark ETL batch job.
+2. Submit the PySpark ETL batch job for Lab 8 (writing to existing BigQuery Managed Iceberg).
 3. Tear down cluster to save costs (failsafe trigger rule).
 """
 
@@ -28,11 +28,11 @@ except Exception:
 PROJECT_ID = google_project or os.environ.get("GCP_PROJECT") or "YOUR_GCP_PROJECT_ID"
 REGION = "us-central1"
 ZONE = "us-central1-a"
-CLUSTER_NAME = "lab7-ephemeral-dataproc-cluster"
+CLUSTER_NAME = "lab8-ephemeral-dataproc-cluster"
 
-# Warehouse path matching previous GCS Iceberg configurations
+# Warehouse path pointing directly to the GCS folder of the BigQuery Managed Iceberg table
 WAREHOUSE_PATH = f"gs://{PROJECT_ID}-iceberg-warehouse/warehouse"
-SPARK_ETL_SCRIPT = f"gs://{PROJECT_ID}-code-bin/dataproc/spark_iceberg_etl.py"
+SPARK_ETL_SCRIPT = f"gs://{PROJECT_ID}-code-bin/dataproc/spark_iceberg_etl_lab8.py"
 ICEBERG_JAR_URI = f"gs://{PROJECT_ID}-code-bin/libs/iceberg-spark-runtime-3.5_2.12-1.5.2.jar"
 
 # ---------------------------------------------------------------------------
@@ -68,7 +68,7 @@ CLUSTER_CONFIG = {
     },
     "gce_cluster_config": {
         "zone_uri": ZONE,
-        "internal_ip_only": False, # Switch to True if running in a private VPC
+        "internal_ip_only": False,
     }
 }
 
@@ -88,10 +88,10 @@ PYSPARK_JOB = {
 # ---------------------------------------------------------------------------
 
 with DAG(
-    "lab7_dataproc_lifecycle_orchestration",
+    "lab8_dataproc_lifecycle_orchestration",
     default_args=default_args,
-    description="Orchestrates Dataproc lifecycle and runs Spark Iceberg ETL",
-    schedule_interval=None, # Triggered on demand or via sensors
+    description="Orchestrates Dataproc lifecycle and runs Spark Iceberg ETL for Lab 8",
+    schedule_interval=None,
     start_date=datetime(2026, 6, 10),
     catchup=False,
     max_active_runs=1,
