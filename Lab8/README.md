@@ -93,16 +93,16 @@ To enable Dataproc to read the execution script and jar libraries, upload them t
 
 Before you can deploy and run the Airflow DAG, you must ensure that a Cloud Composer environment is active in your GCP project. 
 
-If you do not have an active environment, run the following in **Cloud Shell** to create a Cloud Composer 2 instance (Note: Composer creation takes 15–20 minutes):
+If you do not have an active environment, run the following in **Cloud Shell** to create a Cloud Composer 2 instance (Note: Composer 2 creation takes 15–20 minutes):
 ```bash
 export PROJECT_ID=$(gcloud config get-value project)
 export ENVIRONMENT_NAME="walmart-retail-composer"
 export REGION="us-central1"
 
-# Create the Cloud Composer 2 environment in your region
+# Create the Cloud Composer 2 environment in your region (uses pre-configured default service account)
 gcloud composer environments create ${ENVIRONMENT_NAME} \
     --location=${REGION} \
-    --image-version="composer-2.6.3-airflow-2.6.3"
+    --image-version="composer-2.17.3-airflow-2.10.5"
 ```
 
 ---

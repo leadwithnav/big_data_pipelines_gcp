@@ -229,7 +229,7 @@ resource "google_project_iam_member" "bq_connection_user" {
 #
 #   config {
 #     software_config {
-#       image_version = "composer-2.6.3-airflow-2.6.3"
+#       image_version = "composer-2.17.3-airflow-2.10.5"
 #       env_variables = {
 #         GCP_PROJECT = var.project_id
 #       }
