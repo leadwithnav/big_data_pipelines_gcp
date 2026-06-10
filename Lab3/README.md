@@ -5,7 +5,7 @@ In this lab you will write a simple **Apache Beam** streaming pipeline using Pyt
 The pipeline performs the following steps:
 
 ```
-Pub/Sub Input Topic  ──►  Beam Pipeline (UPPERCASE transform)  ──►  Pub/Sub Output Topic
+Pub/Sub Input Topic  ──►  Beam Pipeline (UPPERCASE transform)  ──►  GCS(Iceberg Sink)
 ```
 
 ---
@@ -45,17 +45,11 @@ gcloud services enable dataflow.googleapis.com pubsub.googleapis.com storage.goo
 
 ---
 
-## Step 3: Create Pub/Sub Topics and Subscriptions
+## Step 3: Create Pub/Sub Topics
 
 ```bash
 # Input topic: where you will publish messages
-gcloud pubsub topics create beam-input --project=upgradlabs-1750853349042
-
-# Output topic: where Beam will write transformed messages
-gcloud pubsub topics create beam-output
-
-# Subscription to READ results from the output topic
-gcloud pubsub subscriptions create beam-output-sub --topic=beam-output --project=upgradlabs-1750853349042
+gcloud pubsub topics create beam-input --project=${PROJECT_ID}
 ```
 
 ---
@@ -110,7 +104,7 @@ What happens when you run this:
 2. Dataflow provisions worker VMs automatically.
 3. The pipeline starts and listens to `beam-input` indefinitely.
 
-> ⏳ The Dataflow job typically takes **2-3 minutes** to start up and show as "Running" in the Console.
+> ⏳ The Dataflow job typically takes **4-5 minutes** to start up and show as "Running" in the Console.
 
 ---
 
@@ -125,47 +119,15 @@ What happens when you run this:
 
 ---
 
-## Step 8: Test the Pipeline (Send a Message)
+## Step 8: Run the Publisher to Send Messages to Pub/Sub
 
 Open a **new Cloud Shell tab** and run:
 
 ```bash
 export PROJECT_ID=<your project id>
-
-# Publish a test message to the input topic
-gcloud pubsub topics publish projects/${PROJECT_ID}/topics/beam-input \
-    --message="hello from apache beam"
+python publisher.py --project=${PROJECT_ID}
 ```
 
----
+## Step 9: Explore Cloud Storage Output
 
-## Step 9: Verify the Result (Read from Output)
-
-In another terminal tab, pull a message from the output subscription:
-
-```bash
-export PROJECT_ID=$(gcloud config get-value project)
-
-gcloud pubsub subscriptions pull projects/${PROJECT_ID}/subscriptions/beam-output-sub \
-    --auto-ack \
-    --limit=5
-```
-
-You should see the message transformed to **`HELLO FROM APACHE BEAM`** in the `DATA` column!
-
----
-
-## Step 10: Cleanup
-
-When finished, cancel the Dataflow job to avoid unnecessary charges:
-
-```bash
-# List running Dataflow jobs
-gcloud dataflow jobs list --region=${REGION} --filter="state=Running"
-
-# Cancel the job (replace JOB_ID with the actual ID from the output above)
-gcloud dataflow jobs cancel JOB_ID --region=${REGION}
-```
-
-You can also cancel directly from the **Dataflow Jobs** UI in the GCP Console by clicking **Stop** on the job.
-
+Go to the Cloud Storage browser and navigate to `gs://${BUCKET_NAME}/warehouse`. You should see new files being created as the pipeline writes output. These files are in Apache Iceberg format, which you will explore in Lab 5.
