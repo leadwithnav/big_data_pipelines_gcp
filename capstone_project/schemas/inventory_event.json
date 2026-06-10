@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InventoryEvent",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string"
+    },
+    "product_id": {
+      "type": "string"
+    },
+    "quantity_on_hand": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "last_restocked": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "event_time": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["store_id", "product_id", "quantity_on_hand", "event_time"]
+}

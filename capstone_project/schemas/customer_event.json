@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CustomerEvent",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "loyalty_tier": {
+      "type": "string",
+      "enum": ["BRONZE", "SILVER", "GOLD", "PLATINUM"]
+    },
+    "signup_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "event_time": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["customer_id", "email", "loyalty_tier", "event_time"]
+}

@@ -1,0 +1,6 @@
+apache-beam[gcp]>=2.61.0
+google-cloud-pubsub>=2.20.0
+google-cloud-storage>=2.16.0
+pyspark>=3.5.0
+apache-airflow-providers-google>=10.15.0
+faker>=24.0.0

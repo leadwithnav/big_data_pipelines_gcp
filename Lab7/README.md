@@ -1,139 +1,183 @@
-# Lab 6: BigQuery Managed Iceberg Tables
+# Lab 7: BigQuery Managed Iceberg Tables — Transactional SQL and Time Travel
 
 In this lab, you will learn how to create and manage **Apache Iceberg tables** natively within **Google Cloud BigQuery**. 
 
-Rather than setting up an external metastore or manually syncing metadata JSON files (as with read-only external tables), you will use **BigQuery Managed Iceberg Tables**. This feature allows BigQuery to handle the metadata and storage optimizations (like manifest management and snapshot tracking) directly in your Google Cloud Storage (GCS) bucket, enabling full read-write SQL access (such as running `INSERT` or `SELECT` statements).
+Unlike standard external tables which are read-only, **BigQuery Managed Iceberg Tables** give you full read-write SQL access. BigQuery handles the metadata and storage optimizations directly in your GCS bucket, allowing you to run `INSERT`, `UPDATE`, and `DELETE` (DML) transactions, and perform **Time Travel** queries to view historical table states.
 
-```
-+───────────────────────────+
-|     BigQuery Console      |
-|                           |
-|    [ SQL Workspace ]      |
-|    - Create Connection    |
-|    - CREATE TABLE DDL     |
-|    - INSERT DML Query     |
-|    - SELECT SQL Query     |
-+───────────────────────────+
-              │
-              ▼ (Read/Write access via Connection Service Account)
-+───────────────────────────────────────────────────────────+
-|               Google Cloud Storage (GCS)                  |
-|                                                           |
-|    - gs://STAGE-BUCKET/managed_warehouse/                 |
-|      - /metadata/ (BigQuery-managed manifests & snapshots)|
-|      - /data/ (Parquet data files)                        |
-+───────────────────────────────────────────────────────────+
+---
+
+## Complete Chronological Setup & Execution
+
+Follow these steps in order to set up your GCS warehouse, create the BigQuery Connection, assign roles, and run transactions:
+
+### Step 1: Create the GCS Storage Bucket
+Open **Cloud Shell** and run the following commands to create a new GCS bucket which will serve as the physical warehouse location for the Iceberg table:
+
+```bash
+export PROJECT_ID=$(gcloud config get-value project)
+export BUCKET_NAME="${PROJECT_ID}-iceberg-warehouse"
+
+# Create a storage bucket in the us-central1 region
+gcloud storage buckets create gs://${BUCKET_NAME} --location=us-central1
 ```
 
 ---
 
-## Prerequisites
+### Step 2: Create the BigQuery External Connection
+To securely read and write GCS files on-the-fly, BigQuery uses an External Connection. 
 
-- A Google Cloud project with billing enabled.
-- The BigQuery Connection API enabled.
-- A Cloud Storage bucket to act as the warehouse (e.g. your staging bucket `YOUR_PROJECT_ID-iceberg-stage` created in Lab 5).
-
----
-
-## Phase 1: Create an External Connection in the BigQuery UI
-
-BigQuery uses a **Cloud Resource Connection** to securely access your Cloud Storage bucket to write and read Iceberg data files.
-
-1. Open the [GCP Console](https://console.cloud.google.com).
-2. Navigate to **BigQuery** to open the Web UI.
-3. In the **Explorer** panel on the left, click **+ ADD** and select **Connections to external data sources**.
-4. In the External connection creation pane, enter the following details:
-   - **Connection type:** Select `BigLake and remote functions (Cloud Resource)`.
-   - **Connection ID:** Enter `my-gcs-connection`.
-   - **Connection region:** Select `us-east1` (or whichever region matches your GCS staging bucket).
-5. Click **Create connection**.
-6. In the Explorer panel, expand **External Connections** at the bottom, select your newly created connection, and copy the **Service Account ID** email address (e.g., `bqcx-123456789-abcd@gcp-sa-bigquery-condel.iam.gserviceaccount.com`) from the connection details.
-
----
-
-## Phase 2: Set up IAM Permissions via the GCS Console
-
-Since BigQuery needs to write data and metadata files to GCS for managed tables, you must grant the connection's service account permission to create and delete objects.
-
-1. Navigate to the **Cloud Storage** browser.
-2. Select your staging bucket (e.g., `YOUR_PROJECT_ID-iceberg-stage`).
-3. Click on the **Permissions** tab and click **Grant Access**.
-4. In the **New Principals** field, paste the **Service Account ID** email address you copied in Phase 1.
-5. In the **Select a role** dropdown, choose `Cloud Storage` -> `Storage Object Admin`.
-   *(Storage Object Admin is required because BigQuery must write data, write manifests, and update metadata files).*
-6. Click **Save**.
-
----
-
-## Phase 3: Create Dataset and Managed Iceberg Table in BigQuery UI
-
-We will run SQL statements inside the BigQuery SQL Workspace to register our managed Iceberg table on GCS.
-
-1. In the **BigQuery Console**, open a new **SQL query editor** tab.
-2. Run the following DDL query to create a dataset:
+1. Go to the **BigQuery** console.
+2. Open a new **SQL query editor** tab.
+3. Run the following statement to create the Connection in the same region:
    ```sql
-   CREATE SCHEMA IF NOT EXISTS `sensor_analytics` 
-   OPTIONS(location="us-east1");
+   CREATE CONNECTION `us-central1.my_gcs_connection`
+   OPTIONS (
+     connection_type = 'CLOUD_RESOURCE'
+   );
    ```
-3. Run the DDL query to create the managed Iceberg table, replacing `YOUR_PROJECT_ID` and the GCS URI with your actual details:
+4. In the BigQuery **Explorer** panel on the left, scroll to the bottom, expand **External Connections** ➔ **us-central1**, and click **`my_gcs_connection`**.
+5. Copy the **Service Account ID** email address displayed in the connection details (it looks like `bqcx-xxxx@gcp-sa-bigquery-condel.iam.gserviceaccount.com`). You will need this for the next step.
+
+---
+
+### Step 3: Authorize the Connection Service Account on GCS
+Now that your connection is created and has a service account, you must grant it permission to read and write files inside your GCS warehouse bucket.
+
+Run the following in **Cloud Shell** (replace `CONNECTION_SA` with the email you copied in Step 2):
+```bash
+export PROJECT_ID=$(gcloud config get-value project)
+export BUCKET_NAME="${PROJECT_ID}-iceberg-warehouse"
+export CONNECTION_SA="bqcx-xxxx@gcp-sa-bigquery-condel.iam.gserviceaccount.com"
+
+# Grant Storage permissions to the Connection Service Account
+gcloud storage buckets add-iam-policy-binding gs://${BUCKET_NAME} \
+  --member="serviceAccount:${CONNECTION_SA}" \
+  --role="roles/storage.objectUser"
+
+gcloud storage buckets add-iam-policy-binding gs://${BUCKET_NAME} \
+  --member="serviceAccount:${CONNECTION_SA}" \
+  --role="roles/storage.legacyBucketReader"
+```
+
+---
+
+### Step 4: Grant Project-Level User Roles (If Required)
+To ensure your account can run Iceberg queries, grant the necessary BigQuery roles to your logged-in user email.
+
+Run the following in **Cloud Shell** (it will automatically resolve your logged-in account):
+```bash
+export PROJECT_ID=$(gcloud config get-value project)
+export USER_EMAIL=$(gcloud config get-value account)
+
+# Grant Table Creation Roles
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="user:${USER_EMAIL}" \
+  --role="roles/bigquery.dataOwner"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="user:${USER_EMAIL}" \
+  --role="roles/bigquery.connectionAdmin"
+
+# Grant Table Querying Roles
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="user:${USER_EMAIL}" \
+  --role="roles/bigquery.dataViewer"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="user:${USER_EMAIL}" \
+  --role="roles/bigquery.user"
+```
+
+---
+
+### Step 5: Create Dataset and Managed Iceberg Table
+Now, return to the **BigQuery SQL Editor** to create your schema dataset and the managed Iceberg table pointing to your GCS warehouse bucket.
+
+1. Create the dataset:
    ```sql
-   CREATE OR REPLACE TABLE `sensor_analytics.managed_aggregates` (
-     device_id STRING,
-     avg_temperature DOUBLE,
-     avg_humidity DOUBLE,
-     reading_count INT64,
-     error_count INT64,
-     aggregated_at STRING
+   CREATE SCHEMA `upgradlabs-1750853349290.dataset3`
+   OPTIONS (
+     location = 'us-central1'
+   );
+   ```
+
+2. Create the managed Iceberg table (pointing to the bucket created in Step 1):
+   ```sql
+   CREATE OR REPLACE TABLE dataset3.iceberg_tbl1 (
+       id INT64,
+       sensor_id STRING,
+       temperature FLOAT64
    )
-   WITH CONNECTION `YOUR_PROJECT_ID.us-east1.my-gcs-connection`
+   WITH CONNECTION `upgradlabs-1750853349290.us-central1.my_gcs_connection`
    OPTIONS (
      file_format = 'PARQUET',
      table_format = 'ICEBERG',
-     storage_uri = 'gs://YOUR_PROJECT_ID-iceberg-stage/managed_warehouse/'
+     storage_uri = 'gs://upgradlabs-1750853349290-iceberg-warehouse/warehouse'
    );
    ```
-4. Once the query executes successfully, expand your `sensor_analytics` dataset in the Explorer panel and click the `managed_aggregates` table. Navigate to the **Details** tab and verify the table format is listed as **ICEBERG**.
 
 ---
 
-## Phase 4: Run SQL Queries and DML inside BigQuery UI
+### Step 6: Run SQL DML Transactions (Insert, Update, Delete)
 
-Now you can interact with the table. Unlike external read-only tables, you can run `INSERT`, `UPDATE`, and `DELETE` queries.
+Run the following statements in the editor to demonstrate write operations:
 
-### Query 1: Insert Records (DML)
-Insert dummy telemetry aggregate records into the Iceberg table:
+#### 1. Ingest Data (Insert)
 ```sql
-INSERT INTO `sensor_analytics.managed_aggregates` (device_id, avg_temperature, avg_humidity, reading_count, error_count, aggregated_at)
-VALUES 
-  ('1', 24.58, 51.12, 42, 2, '2026-06-04T07:11:05.124536Z'),
-  ('2', 19.34, 45.89, 38, 0, '2026-06-04T07:11:05.124536Z'),
-  ('3', 28.12, 33.45, 51, 1, '2026-06-04T07:11:05.124536Z');
+INSERT INTO dataset3.iceberg_tbl1
+VALUES
+  (1, 'sensor_101', 25.5),
+  (2, 'sensor_102', 28.1),
+  (3, 'sensor_103', 22.8),
+  (4, 'sensor_104', 31.2),
+  (5, 'sensor_105', 27.4);
 ```
 
-### Query 2: Read Records
-Query the table to read the inserted records:
+#### 2. Verify Ingested Records
 ```sql
-SELECT * FROM `sensor_analytics.managed_aggregates`;
+SELECT * FROM dataset3.iceberg_tbl1;
 ```
 
-### Query 3: Analyze the Underlying Storage
-In your Cloud Storage browser, open the staging bucket and navigate to `managed_warehouse/`. You will see:
-- `/data/` containing the Parquet data files created by BigQuery.
-- `/metadata/` containing the Iceberg metadata, manifest lists, and manifest files created by BigQuery during the transaction.
+#### 3. Modify Records (Update)
+```sql
+UPDATE dataset3.iceberg_tbl1
+SET temperature = 26.8
+WHERE sensor_id = 'sensor_101';
+```
 
-*Since it is in standard Iceberg format, other engines like Apache Spark or Trino can read this table directly from your GCS bucket!*
+#### 4. Drop Records (Delete)
+```sql
+DELETE FROM dataset3.iceberg_tbl1
+WHERE temperature > 30.0;
+```
 
 ---
 
-## Phase 5: Cleanup
+### Step 7: Time Travel Queries
 
-To clean up resources:
+Because Iceberg tables track snapshot commits, you can query historical versions of the dataset.
 
-1. **Delete the BigQuery table and dataset:**
-   Run the following query in the SQL Editor:
-   ```sql
-   DROP TABLE IF EXISTS `sensor_analytics.managed_aggregates`;
-   DROP SCHEMA IF EXISTS `sensor_analytics` CASCADE;
-   ```
-2. **Delete the Connection:**
-   In the Explorer panel under **External Connections**, click your connection (`my-gcs-connection`), and click **Delete connection** in the details tab.
+#### 1. Query Current State
+Verify the current state of the table (4 rows remain after deleting temperatures above 30):
+```sql
+SELECT * FROM dataset3.iceberg_tbl1;
+```
+
+#### 2. Query Table State in the Past (Time Travel)
+Run the following query to view the table's state as of 5 minutes ago (before the update and delete operations):
+```sql
+SELECT * 
+FROM dataset3.iceberg_tbl1 FOR SYSTEM_TIME AS OF TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 5 MINUTE);
+```
+*Observe that all 5 original rows appear, and the temperature for `sensor_101` returns to its original value (`25.5`), showing that Iceberg successfully traveled back in time!*
+
+---
+
+### Step 8: Cleanup
+
+To delete the resources created in this lab, run the following:
+```sql
+DROP TABLE IF EXISTS dataset3.iceberg_tbl1;
+DROP SCHEMA IF EXISTS dataset3 CASCADE;
+```
+*(You can also delete `my_gcs_connection` from the External Connections list in the Explorer).*
