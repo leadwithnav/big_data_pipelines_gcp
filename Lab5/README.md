@@ -14,7 +14,7 @@ export REGION=us-central1
 ```bash
 wget https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.5_2.12/1.5.2/iceberg-spark-runtime-3.5_2.12-1.5.2.jar
 
-gcloud storage cp iceberg-spark-runtime-3.5_2.12-1.5.2.jar gs://${PROJECT_ID}-iceberg-warehouse/
+gcloud storage cp iceberg-spark-runtime-3.5_2.12-1.5.2.jar gs://${PROJECT_ID}-dataflow-temp/
 ```
 
 ## Run the following command to create a Dataproc cluster with the Iceberg runtime JAR included in the classpath:
@@ -28,7 +28,7 @@ gcloud dataproc clusters create cluster-lab \
     --image-version=2.2-debian12 \
     --optional-components=JUPYTER \
     --enable-component-gateway \
---properties="spark:spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,spark:spark.jars=gs://${PROJECT_ID}-iceberg-warehouse/iceberg-spark-runtime-3.5_2.12-1.5.2.jar" \
+--properties="spark:spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,spark:spark.jars=gs://${PROJECT_ID}-dataflow-temp/iceberg-spark-runtime-3.5_2.12-1.5.2.jar" \
     --project=${PROJECT_ID}
 ```
 
