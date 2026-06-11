@@ -32,6 +32,7 @@ CLUSTER_NAME = "lab8-ephemeral-dataproc-cluster"
 
 # Warehouse path pointing directly to the GCS folder of the BigQuery Managed Iceberg table
 WAREHOUSE_PATH = f"gs://{PROJECT_ID}-iceberg-warehouse/warehouse"
+INPUT_CSV_PATH = f"gs://{PROJECT_ID}-iceberg-warehouse/sensor.csv"
 SPARK_ETL_SCRIPT = f"gs://{PROJECT_ID}-code-bin/dataproc/spark_iceberg_etl_lab8.py"
 ICEBERG_JAR_URI = f"gs://{PROJECT_ID}-code-bin/libs/iceberg-spark-runtime-3.5_2.12-1.5.2.jar"
 
@@ -78,7 +79,8 @@ PYSPARK_JOB = {
     "pyspark_job": {
         "main_python_file_uri": SPARK_ETL_SCRIPT,
         "args": [
-            "--warehouse_path", WAREHOUSE_PATH
+            "--warehouse_path", WAREHOUSE_PATH,
+            "--input_csv_path", INPUT_CSV_PATH
         ],
     },
 }

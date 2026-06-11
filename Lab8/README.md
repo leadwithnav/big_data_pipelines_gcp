@@ -65,9 +65,9 @@ Open [dataproc_workflow_dag.py](file:///d:/trainings/GCP_Big_Data_Pipelines/Lab8
 
 ---
 
-## Step 3: Upload ETL Scripts and JAR files to GCS
+## Step 3: Create GCS Buckets, Download Iceberg JAR, and Upload Files
 
-To enable Dataproc to read the execution script and jar libraries, upload them to your GCS code bucket.
+To enable Dataproc to read the execution script, JAR libraries, and input CSV data, you must configure your Cloud Storage buckets and upload the required files.
 
 1. Activate Cloud Shell.
 2. Navigate to the Lab 8 directory:
@@ -78,13 +78,30 @@ To enable Dataproc to read the execution script and jar libraries, upload them t
    ```bash
    export PROJECT_ID=$(gcloud config get-value project)
    ```
-4. Upload the PySpark script:
+4. Create the GCS buckets for code storage and the Iceberg warehouse (if they do not already exist):
+   ```bash
+   # Create the code binary bucket
+   gcloud storage buckets create gs://${PROJECT_ID}-code-bin --location=us-central1
+
+   # Create the Iceberg warehouse bucket (if not created in Lab 7)
+   gcloud storage buckets create gs://${PROJECT_ID}-iceberg-warehouse --location=us-central1
+   ```
+5. Download the Apache Iceberg Spark runtime JAR:
+   ```bash
+   curl -O https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.5_2.12/1.5.2/iceberg-spark-runtime-3.5_2.12-1.5.2.jar
+   ```
+6. Upload the Iceberg runtime JAR to your code bucket:
+   ```bash
+   gcloud storage cp iceberg-spark-runtime-3.5_2.12-1.5.2.jar gs://${PROJECT_ID}-code-bin/libs/
+   ```
+7. Upload the PySpark ETL script to your code bucket:
    ```bash
    gcloud storage cp spark_iceberg_etl.py gs://${PROJECT_ID}-code-bin/dataproc/spark_iceberg_etl_lab8.py
    ```
-5. Ensure the Iceberg runtime JAR is uploaded:
+8. Upload/Copy the `sensor.csv` file (from which Spark will read) to your Iceberg warehouse bucket:
+   We will copy the telemetry CSV file `sensor_data.csv` from Lab 2 to GCS as `sensor.csv`:
    ```bash
-   gcloud storage cp ../iceberg-spark-runtime-3.5_2.12-1.5.2.jar gs://${PROJECT_ID}-code-bin/libs/
+   gcloud storage cp ../Lab2/sensor_data.csv gs://${PROJECT_ID}-iceberg-warehouse/sensor.csv
    ```
 
 ---
