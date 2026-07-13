@@ -24,6 +24,7 @@ In this introductory lab, you will get hands-on experience with:
 - Dataproc and Compute Engine APIs enabled.
 - Access to Cloud Shell.
 
+
 ---
 
 ## Step 1: Open Cloud Shell and Set Environment Variables
@@ -32,7 +33,7 @@ Activate Cloud Shell (`>_` in the top right of the GCP Console) and set up the c
 
 ```bash
 # Auto-detect your active GCP Project ID
-export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_ID=your project id
 
 # Choose a region (e.g. us-east1 or us-central1)
 export REGION=us-east1
@@ -45,6 +46,9 @@ echo "Region       : $REGION"
 echo "Cluster Name : $CLUSTER_NAME"
 ```
 
+```bash
+gcloud auth login
+```
 ---
 
 ## Step 2: Enable Dataproc, Compute Engine, and Resource Manager APIs
@@ -55,7 +59,8 @@ Run the following command to enable the necessary Google Cloud APIs in your proj
 gcloud services enable \
     dataproc.googleapis.com \
     compute.googleapis.com \
-    cloudresourcemanager.googleapis.com
+    cloudresourcemanager.googleapis.com \
+    --project=${PROJECT_ID} 
 ```
 
 ---
