@@ -17,20 +17,20 @@ export PROJECT_ID=<your project id>
 ### 2. Enable Dataproc API
 ```bash
 gcloud services enable dataproc.googleapis.com \
-  --project=232436531464
+  --project=${PROJECT_ID}
 ```
 
 ### 3. Enable Resource Manager API
 ```bash
 gcloud services enable cloudresourcemanager.googleapis.com \
-  --project=232436531464
+  --project=${PROJECT_ID}
 ```
 
 ### 4. Grant Dataproc Worker Role to Compute Default Service Account
 Dataproc VMs use the default Compute Engine service account identity to communicate with the cluster manager. Grant it the `Dataproc Worker` role:
 ```bash
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-  --member="serviceAccount:232436531464-compute@developer.gserviceaccount.com" \
+  --member="serviceAccount:${PROJECT_ID}-compute@developer.gserviceaccount.com" \
   --role="roles/dataproc.worker"
 ```
 
