@@ -14,11 +14,11 @@ Follow these steps in order to set up your GCS warehouse, create the BigQuery Co
 Open **Cloud Shell** and run the following commands to create a new GCS bucket which will serve as the physical warehouse location for the Iceberg table:
 
 ```bash
-export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_ID=your_project_id
 export BUCKET_NAME="${PROJECT_ID}-bq-iceberg-warehouse"
 
 # Create a storage bucket in the us-central1 region
-gcloud storage buckets create gs://${BUCKET_NAME} --location=us-central1
+gcloud storage buckets create gs://${BUCKET_NAME} --location=us-central1 --project=${PROJECT_ID}
 ```
 
 ---

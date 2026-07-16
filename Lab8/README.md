@@ -4,7 +4,7 @@ In this lab, you will learn how to orchestrate a production-grade Spark ETL work
 
 To optimize compute costs, you will run a DAG that automates the lifecycle of an **ephemeral Dataproc cluster**:
 1. **Create Dataproc Cluster:** Provision a cluster only when needed, pre-configured with the Apache Iceberg runtime.
-2. **Submit PySpark ETL Job:** Execute a Spark script that reads raw telemetry data from GCS (`sensor_db.filtered_readings`), calculates average temperatures, structures them to match the schema of your BigQuery managed table (`dataset3.iceberg_tbl1`), and appends the results directly to the table's GCS storage folder.
+2. **Submit PySpark ETL Job:** Execute a Spark script that reads raw csv telemetry data from GCS , calculates average temperatures,appends the results directly to the GCS storage folder.
 3. **Delete Dataproc Cluster:** Immediately tear down the cluster upon job completion (or failure) to prevent ongoing compute charges.
 
 ```
@@ -17,16 +17,14 @@ To optimize compute costs, you will run a DAG that automates the lifecycle of an
                        │
                        ▼
          ┌───────────────────────────┐
-         │  Submit PySpark ETL Job   │  <── Read raw Iceberg ➔ Aggregate ➔ Append to Managed GCS Folder
+         │  Submit PySpark ETL Job   │  <── Read raw csv ➔ Aggregate ➔ Append to GCS Folder in Iceberg format
          └─────────────┬─────────────┘
                        │
                        ▼
          ┌───────────────────────────┐
          │  Delete Dataproc Cluster  │  <── Tear down VMs (Cost failsafe)
          └───────────────────────────┘
-                       │
-                       ▼
-     [ Query results in BigQuery Web UI ] (Appended rows from Spark are visible instantly!)
+                       
 ```
 
 ---
@@ -76,15 +74,15 @@ To enable Dataproc to read the execution script, JAR libraries, and input CSV da
    ```
 3. Set your project ID:
    ```bash
-   export PROJECT_ID=$(gcloud config get-value project)
+   export PROJECT_ID=your_project_id
    ```
 4. Create the GCS buckets for code storage and the Iceberg warehouse (if they do not already exist):
    ```bash
    # Create the code binary bucket
-   gcloud storage buckets create gs://${PROJECT_ID}-code-bin --location=us-central1
+   gcloud storage buckets create gs://${PROJECT_ID}-code-bin --location=us-central1 --project=${PROJECT_ID}
 
    # Create the Iceberg warehouse bucket (if not created in Lab 7)
-   gcloud storage buckets create gs://${PROJECT_ID}-iceberg-warehouse --location=us-central1
+   gcloud storage buckets create gs://${PROJECT_ID}-iceberg-warehouse --location=us-central1 --project=${PROJECT_ID}
    ```
 5. Download the Apache Iceberg Spark runtime JAR:
    ```bash
@@ -101,7 +99,7 @@ To enable Dataproc to read the execution script, JAR libraries, and input CSV da
 8. Upload/Copy the `sensor.csv` file (from which Spark will read) to your Iceberg warehouse bucket:
    We will copy the telemetry CSV file `sensor_data.csv` from Lab 2 to GCS as `sensor.csv`:
    ```bash
-   gcloud storage cp ../Lab2/sensor_data.csv gs://${PROJECT_ID}-iceberg-warehouse/sensor.csv
+   gcloud storage cp sensor_data.csv gs://${PROJECT_ID}-iceberg-warehouse/sensor.csv
    ```
 
 ---
