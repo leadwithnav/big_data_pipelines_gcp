@@ -110,14 +110,35 @@ Before you can deploy and run the Airflow DAG, you must ensure that a Cloud Comp
 
 If you do not have an active environment, run the following in **Cloud Shell** to create a Cloud Composer 2 instance (Note: Composer 2 creation takes 15–20 minutes):
 ```bash
-export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_ID=your_project_id
 export ENVIRONMENT_NAME="walmart-retail-composer"
 export REGION="us-central1"
 
+export COMPOSER_SA="composer-environment-sa"
+export COMPOSER_SA_EMAIL="${COMPOSER_SA}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+gcloud iam service-accounts create ${COMPOSER_SA} \
+  --display-name="Cloud Composer Environment Service Account" \
+  --project=${PROJECT_ID}
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${COMPOSER_SA_EMAIL}" \
+  --role="roles/composer.worker"
+
 # Create the Cloud Composer 2 environment in your region (uses pre-configured default service account)
+gcloud services enable \
+    composer.googleapis.com \
+    compute.googleapis.com \
+    iam.googleapis.com \
+    serviceusage.googleapis.com \
+    storage.googleapis.com \
+    cloudresourcemanager.googleapis.com \
+    --project=${PROJECT_ID}
+
 gcloud composer environments create ${ENVIRONMENT_NAME} \
     --location=${REGION} \
-    --image-version="composer-2.17.3-airflow-2.10.5"
+    --image-version="composer-2.17.3-airflow-2.10.5" \
+    --project=${PROJECT_ID}
 ```
 
 ---

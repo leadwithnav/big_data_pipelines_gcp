@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 0: Google Cloud Dataproc and YARN Exploration</title>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #8b5cf6;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-indigo: #6366f1;
+      --border-color: #334155;
+      --code-bg: #090d16;
+      --sidebar-width: 320px;
+      --header-height: 70px;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-purple: #7c3aed;
+      --accent-blue: #2563eb;
+      --accent-green: #059669;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --border-color: #e2e8f0;
+      --code-bg: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      line-height: 1.6;
+    }
+
+    /* Top Navbar */
+    .navbar {
+      height: var(--header-height);
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .progress-bar-container {
+      width: 180px;
+      height: 8px;
+      background-color: var(--bg-primary);
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+      transition: width 0.3s ease;
+    }
+
+    #progressPercent {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-purple);
+      min-width: 40px;
+    }
+
+    .theme-toggle {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--bg-card-hover);
+    }
+
+    /* Main Layout */
+    .main-wrapper {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) 1fr;
+      height: calc(100vh - var(--header-height));
+      position: relative;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      padding: 20px 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-heading {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      padding: 0 20px 12px 20px;
+      font-weight: 600;
+    }
+
+    .step-list {
+      list-style: none;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border-left: 3px solid transparent;
+    }
+
+    .step-item:hover {
+      background-color: var(--bg-card-hover);
+    }
+
+    .step-item.active {
+      background-color: var(--bg-card-hover);
+      border-left-color: var(--accent-purple);
+    }
+
+    .step-item.completed .step-number {
+      background-color: var(--accent-green);
+      color: #fff;
+      border-color: var(--accent-green);
+    }
+
+    .step-number {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .step-item.active .step-title {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Main Content Area */
+    .content-area {
+      padding: 32px 40px 100px 40px;
+      overflow-y: auto;
+    }
+
+    .content-panel {
+      display: none;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .content-panel.active {
+      display: block;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
+      color: var(--text-primary);
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+    }
+
+    /* Callout Cards */
+    .callout {
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      border-left: 4px solid var(--accent-purple);
+      background-color: var(--bg-secondary);
+    }
+
+    .callout-purple { border-left-color: var(--accent-purple); }
+    .callout-blue { border-left-color: var(--accent-blue); }
+    .callout-amber { border-left-color: var(--accent-amber); }
+    .callout-green { border-left-color: var(--accent-green); }
+    .callout-red { border-left-color: var(--accent-red); }
+
+    .callout-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+
+    .callout-content {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* OS Tab Switcher */
+    .os-tab-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .os-tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      padding: 6px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .os-tab-btn:hover {
+      background-color: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .os-tab-btn.active {
+      background-color: var(--accent-purple);
+      color: #fff;
+    }
+
+    .os-content {
+      display: none;
+    }
+
+    .os-content.active {
+      display: block;
+    }
+
+    /* Code Block Containers */
+    .code-block-container {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .code-header {
+      background-color: var(--bg-secondary);
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .code-lang-badge {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .copy-btn {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background-color: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    pre.code-content {
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+
+    /* Task Checklist */
+    .task-checklist {
+      list-style: none;
+      margin: 24px 0;
+    }
+
+    .task-checkbox-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .task-checkbox-container:hover {
+      border-color: var(--accent-purple);
+    }
+
+    .task-checkbox-container.completed {
+      border-color: var(--accent-green);
+      background-color: rgba(16, 185, 129, 0.05);
+    }
+
+    .custom-checkbox {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 2px solid var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .task-checkbox-container.completed .custom-checkbox {
+      background-color: var(--accent-green);
+      border-color: var(--accent-green);
+    }
+
+    .check-mark {
+      width: 14px;
+      height: 14px;
+      fill: #fff;
+      display: none;
+    }
+
+    .task-checkbox-container.completed .check-mark {
+      display: block;
+    }
+
+    .task-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .task-label {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-primary);
+    }
+
+    .task-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Quiz Cards */
+    .quiz-card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .quiz-question {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--text-primary);
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .quiz-option {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      padding: 12px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+
+    .quiz-option:hover {
+      border-color: var(--accent-purple);
+      color: var(--text-primary);
+    }
+
+    .quiz-option.selected.correct {
+      background-color: rgba(16, 185, 129, 0.15);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .quiz-option.selected.incorrect {
+      background-color: rgba(239, 68, 68, 0.15);
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+      font-weight: 600;
+    }
+
+    /* Certificate Panel */
+    .cert-canvas-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 30px;
+      margin-top: 20px;
+    }
+
+    .cert-input {
+      width: 100%;
+      max-width: 400px;
+      padding: 12px 16px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    .cert-input:focus {
+      border-color: var(--accent-purple);
+    }
+
+    #certCanvas {
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Sticky Bottom Footer Navigation */
+    .nav-bar {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: calc(100% - var(--sidebar-width));
+      height: 64px;
+      background-color: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      z-index: 5;
+    }
+
+    .btn-nav {
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn-nav:hover {
+      opacity: 0.9;
+    }
+
+    .btn-nav:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-prev {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">0</div>
+      <div class="brand-title">Lab 0: Google Cloud Dataproc and YARN Exploration</div>
+    </div>
+    <div class="nav-actions">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <span id="progressPercent">0%</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Wrapper Grid -->
+  <div class="main-wrapper">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Lab Modules</div>
+      <ul class="step-list" id="stepsList">
+
+        <li class="step-item active" onclick="goToStep(0)">
+          <span class="step-number">1</span>
+          <span class="step-title">Open Cloud Shell & Set Environment Variables</span>
+        </li>
+        <li class="step-item " onclick="goToStep(1)">
+          <span class="step-number">2</span>
+          <span class="step-title">Create a Dataproc Cluster</span>
+        </li>
+        <li class="step-item " onclick="goToStep(2)">
+          <span class="step-number">3</span>
+          <span class="step-title">Open the YARN Resource Manager UI</span>
+        </li>
+        <li class="step-item " onclick="goToStep(3)">
+          <span class="step-number">4</span>
+          <span class="step-title">Submit a Spark Job from Cloud Shell</span>
+        </li>
+        <li class="step-item " onclick="goToStep(4)">
+          <span class="step-number">5</span>
+          <span class="step-title">Verify Application on YARN UI & Dataproc Jobs CLI</span>
+        </li>
+        <li class="step-item " onclick="goToStep(5)">
+          <span class="step-number">6</span>
+          <span class="step-title">Cluster Status Verification (Keep Cluster Active)</span>
+        </li>
+        <li class="step-item" onclick="goToStep(6)">
+          <span class="step-number">?</span>
+          <span class="step-title">Knowledge Assessment</span>
+        </li>
+        <li class="step-item" onclick="goToStep(7)">
+          <span class="step-number">★</span>
+          <span class="step-title">Certificate</span>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+
+      <!-- STEP PANEL 0 -->
+      <section class="content-panel active" id="panel-0">
+        <h1>Step 1: Open Cloud Shell & Set Environment Variables</h1>
+        <p class="subtitle">Activate Cloud Shell, set cluster/region/zone variables, authenticate, and configure your active project.</p>
+        
+        <div class="callout callout-purple">
+          <div class="callout-title">💡 Dataproc & YARN Overview</div>
+          <div class="callout-content">Google Cloud Dataproc is GCP's fully-managed Apache Spark and Hadoop service. YARN (Yet Another Resource Negotiator) acts as the cluster resource manager and job scheduler, allocating memory/CPU containers for Spark applications.</div>
+        </div>
+        <p>Before provisioning clusters, auto-detect your project ID, set environment variables (`PROJECT_ID`, `REGION`, `ZONE`, `CLUSTER_NAME`), and authenticate your session.</p>
+
+        <!-- OS Tab Switcher -->
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" data-os="linux" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn" data-os="powershell" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <!-- OS Command Content: Linux -->
+        <div class="os-content active" data-os="linux">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Linux / macOS (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Auto-detect your active GCP Project ID
+export PROJECT_ID=$(gcloud config get-value project)
+
+# Choose a region and zone
+export REGION=us-central1
+export ZONE=us-central1-a
+
+# Define your cluster name
+export CLUSTER_NAME="cluster-lab"
+
+echo "Project ID   : $PROJECT_ID"
+echo "Region       : $REGION"
+echo "Zone         : $ZONE"
+echo "Cluster Name : $CLUSTER_NAME"
+
+gcloud auth login
+gcloud config set project $PROJECT_ID</code></pre>
+          </div>
+        </div>
+
+        <!-- OS Command Content: PowerShell -->
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Auto-detect active GCP Project ID in PowerShell
+$env:PROJECT_ID=(gcloud config get-value project)
+
+# Choose a region and zone
+$env:REGION="us-central1"
+$env:ZONE="us-central1-a"
+
+# Define cluster name
+$env:CLUSTER_NAME="cluster-lab"
+
+Write-Host "Project ID   : $env:PROJECT_ID"
+Write-Host "Region       : $env:REGION"
+Write-Host "Zone         : $env:ZONE"
+Write-Host "Cluster Name : $env:CLUSTER_NAME"
+
+gcloud auth login
+gcloud config set project $env:PROJECT_ID</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t1_1">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Set Environment Variables</span>
+              <span class="task-desc">Export PROJECT_ID, REGION, ZONE, and CLUSTER_NAME variables.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" data-task-id="t1_2">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Authenticate & Set Project</span>
+              <span class="task-desc">Run gcloud auth login and gcloud config set project.</span>
+            </div>
+          </li>
+        </ul>
+
+      </section>
+      <!-- STEP PANEL 1 -->
+      <section class="content-panel " id="panel-1">
+        <h1>Step 2: Create a Dataproc Cluster</h1>
+        <p class="subtitle">Provision a cost-effective single-node Dataproc cluster with Component Gateway enabled.</p>
+        
+        <div class="callout callout-blue">
+          <div class="callout-title">⚡ Component Gateway</div>
+          <div class="callout-content">Enabling `--enable-component-gateway` provides secure web access to YARN ResourceManager, Jupyter, and other Hadoop UIs directly from your browser. Cluster creation typically takes 5 to 7 minutes.</div>
+        </div>
+        <p>Run `gcloud dataproc clusters create` using single-node mode with `n2-standard-4` machine type, Debian 12 image version, Jupyter, and Component Gateway enabled.</p>
+
+        <!-- OS Tab Switcher -->
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" data-os="linux" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn" data-os="powershell" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <!-- OS Command Content: Linux -->
+        <div class="os-content active" data-os="linux">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Linux / macOS (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code>gcloud dataproc clusters create ${CLUSTER_NAME} \
+    --region=${REGION} \
+    --zone=${ZONE} \
+    --single-node \
+    --master-machine-type=n2-standard-4 \
+    --image-version=2.2-debian12 \
+    --enable-component-gateway \
+    --optional-components=JUPYTER \
+    --project=${PROJECT_ID}</code></pre>
+          </div>
+        </div>
+
+        <!-- OS Command Content: PowerShell -->
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code>gcloud dataproc clusters create $env:CLUSTER_NAME `
+    --region=$env:REGION `
+    --zone=$env:ZONE `
+    --single-node `
+    --master-machine-type=n2-standard-4 `
+    --image-version=2.2-debian12 `
+    --enable-component-gateway `
+    --optional-components=JUPYTER `
+    --project=$env:PROJECT_ID</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t2_1">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Provision Single-Node Cluster</span>
+              <span class="task-desc">Execute gcloud dataproc clusters create command.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" data-task-id="t2_2">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Verify Cluster Status</span>
+              <span class="task-desc">Confirm cluster state transitions to RUNNING in GCP Console.</span>
+            </div>
+          </li>
+        </ul>
+
+      </section>
+      <!-- STEP PANEL 2 -->
+      <section class="content-panel " id="panel-2">
+        <h1>Step 3: Open the YARN Resource Manager UI</h1>
+        <p class="subtitle">Access the YARN ResourceManager web panel securely via Component Gateway.</p>
+        
+        <div class="callout callout-amber">
+          <div class="callout-title">🔍 YARN ResourceManager Panel</div>
+          <div class="callout-content">The YARN ResourceManager UI displays active node managers, container memory/vCPU allocations, and application execution logs in real-time.</div>
+        </div>
+        <p>Navigate to Dataproc → Clusters → click `cluster-lab` → Web Interfaces tab → click YARN ResourceManager. The dashboard will load showing 0 active/completed applications.</p>
+
+        <!-- OS Tab Switcher -->
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" data-os="linux" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn" data-os="powershell" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <!-- OS Command Content: Linux -->
+        <div class="os-content active" data-os="linux">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Linux / macOS (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Access YARN ResourceManager via Component Gateway in GCP Console:
+# 1. Open https://console.cloud.google.com
+# 2. Go to Dataproc -> Clusters -> cluster-lab
+# 3. Open 'Web Interfaces' tab and click 'YARN ResourceManager'</code></pre>
+          </div>
+        </div>
+
+        <!-- OS Command Content: PowerShell -->
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Access YARN ResourceManager via Component Gateway in GCP Console:
+# 1. Open https://console.cloud.google.com
+# 2. Go to Dataproc -> Clusters -> cluster-lab
+# 3. Open 'Web Interfaces' tab and click 'YARN ResourceManager'</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t3_1">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Navigate to Web Interfaces</span>
+              <span class="task-desc">Open cluster-lab details page in Dataproc Console.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" data-task-id="t3_2">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Launch YARN ResourceManager UI</span>
+              <span class="task-desc">Click YARN ResourceManager link to open monitoring dashboard.</span>
+            </div>
+          </li>
+        </ul>
+
+      </section>
+      <!-- STEP PANEL 3 -->
+      <section class="content-panel " id="panel-3">
+        <h1>Step 4: Submit a Spark Job from Cloud Shell</h1>
+        <p class="subtitle">Submit a pre-packaged Spark Pi calculation job to the cluster.</p>
+        
+        <div class="callout callout-green">
+          <div class="callout-title">🚀 Job Submission Engine</div>
+          <div class="callout-content">Submitting jobs via `gcloud dataproc jobs submit spark` sends the request to the master node, which delegates container allocation and task execution to YARN.</div>
+        </div>
+        <p>Run `gcloud dataproc jobs submit spark` referencing the built-in `SparkPi` example JAR located on the cluster master VM to calculate Pi with 1000 iterations.</p>
+
+        <!-- OS Tab Switcher -->
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" data-os="linux" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn" data-os="powershell" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <!-- OS Command Content: Linux -->
+        <div class="os-content active" data-os="linux">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Linux / macOS (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code>gcloud dataproc jobs submit spark \
+    --cluster=${CLUSTER_NAME} \
+    --region=${REGION} \
+    --project=${PROJECT_ID} \
+    --class=org.apache.spark.examples.SparkPi \
+    --jars=file:///usr/lib/spark/examples/jars/spark-examples.jar \
+    -- 1000</code></pre>
+          </div>
+        </div>
+
+        <!-- OS Command Content: PowerShell -->
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code>gcloud dataproc jobs submit spark `
+    --cluster=$env:CLUSTER_NAME `
+    --region=$env:REGION `
+    --project=$env:PROJECT_ID `
+    --class=org.apache.spark.examples.SparkPi `
+    --jars=file:///usr/lib/spark/examples/jars/spark-examples.jar `
+    -- 1000</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t4_1">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Submit SparkPi Job</span>
+              <span class="task-desc">Run gcloud dataproc jobs submit spark command.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" data-task-id="t4_2">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Observe Execution Logs</span>
+              <span class="task-desc">Monitor job submission STDOUT in Cloud Shell terminal.</span>
+            </div>
+          </li>
+        </ul>
+
+      </section>
+      <!-- STEP PANEL 4 -->
+      <section class="content-panel " id="panel-4">
+        <h1>Step 5: Verify Application on YARN UI & Dataproc Jobs CLI</h1>
+        <p class="subtitle">Trace Spark application lifecycle in YARN UI and inspect job status via gcloud Dataproc CLI.</p>
+        
+        <div class="callout callout-purple">
+          <div class="callout-title">📊 Job & YARN Application Verification</div>
+          <div class="callout-content">Observe the application transition from ACCEPTED → RUNNING → FINISHED in the YARN ResourceManager Web UI (via Component Gateway). You can also list and describe job details directly using `gcloud dataproc jobs` commands without needing SSH permissions.</div>
+        </div>
+        <p>Return to your YARN ResourceManager browser tab to verify `org.apache.spark.examples.SparkPi`. Alternatively, run `gcloud dataproc jobs list` and `gcloud dataproc jobs describe` in Cloud Shell to query job status and execution details.</p>
+
+        <!-- OS Tab Switcher -->
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" data-os="linux" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn" data-os="powershell" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <!-- OS Command Content: Linux -->
+        <div class="os-content active" data-os="linux">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Linux / macOS (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># 1. List Dataproc jobs submitted to the cluster
+gcloud dataproc jobs list --region=${REGION}
+
+# 2. Inspect detailed job status and STDOUT/STDERR logs
+gcloud dataproc jobs describe [JOB_ID] --region=${REGION}</code></pre>
+          </div>
+        </div>
+
+        <!-- OS Command Content: PowerShell -->
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># 1. List Dataproc jobs submitted to the cluster
+gcloud dataproc jobs list --region=$env:REGION
+
+# 2. Inspect detailed job status and STDOUT/STDERR logs
+gcloud dataproc jobs describe [JOB_ID] --region=$env:REGION</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t5_1">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Verify Spark Application State</span>
+              <span class="task-desc">Confirm application state reaches FINISHED in YARN UI.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" data-task-id="t5_2">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">List Dataproc Jobs via CLI</span>
+              <span class="task-desc">Run gcloud dataproc jobs list --region=${REGION}.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" data-task-id="t5_3">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Describe Job Details</span>
+              <span class="task-desc">Run gcloud dataproc jobs describe [JOB_ID] for logs.</span>
+            </div>
+          </li>
+        </ul>
+
+      </section>
+      <!-- STEP PANEL 5 -->
+      <section class="content-panel " id="panel-5">
+        <h1>Step 6: Cluster Status Verification (Keep Cluster Active)</h1>
+        <p class="subtitle">Maintain your active Dataproc cluster for upcoming hands-on labs.</p>
+        
+        <div class="callout callout-amber">
+          <div class="callout-title">📌 Cluster Preservation</div>
+          <div class="callout-content">Do NOT delete this cluster. The active Dataproc cluster `cluster-lab` will be reused for subsequent training labs.</div>
+        </div>
+        <p>Leave the Dataproc cluster running. Run `gcloud dataproc clusters list` to verify that your cluster remains in state RUNNING before moving to Lab 1.</p>
+
+        <!-- OS Tab Switcher -->
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" data-os="linux" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn" data-os="powershell" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <!-- OS Command Content: Linux -->
+        <div class="os-content active" data-os="linux">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Linux / macOS (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Verify Dataproc cluster remains active for subsequent labs
+gcloud dataproc clusters list --region=${REGION}</code></pre>
+          </div>
+        </div>
+
+        <!-- OS Command Content: PowerShell -->
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell (BASH)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Verify Dataproc cluster remains active for subsequent labs
+gcloud dataproc clusters list --region=$env:REGION</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t6_1">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Preserve Active Cluster</span>
+              <span class="task-desc">Do NOT delete the Dataproc cluster.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" data-task-id="t6_2">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Verify RUNNING Status</span>
+              <span class="task-desc">Confirm cluster status is RUNNING using gcloud dataproc clusters list.</span>
+            </div>
+          </li>
+        </ul>
+
+      </section>
+
+      <!-- ASSESSMENT PANEL -->
+      <section class="content-panel" id="panel-6">
+        <h1>Knowledge Assessment</h1>
+        <p class="subtitle">Test your understanding of the concepts covered in this lab.</p>
+        
+        <div class="quiz-card">
+          <div class="quiz-question">1. What is the primary role of YARN (Yet Another Resource Negotiator) in Google Cloud Dataproc clusters?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" data-correct="false">A) Persistent SQL Database Storage</div>
+            <div class="quiz-option" data-correct="true">B) Cluster Resource Management and Job Container Scheduling</div>
+            <div class="quiz-option" data-correct="false">C) Web Browser Rendering Engine</div>
+            <div class="quiz-option" data-correct="false">D) Object Bucket Synchronization</div>
+          </div>
+        </div>
+        <div class="quiz-card">
+          <div class="quiz-question">2. Which gcloud flag enables secure browser access to YARN ResourceManager without manual SSH port forwarding?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" data-correct="false">A) --public-ip</div>
+            <div class="quiz-option" data-correct="true">B) --enable-component-gateway</div>
+            <div class="quiz-option" data-correct="false">C) --open-ports=8088</div>
+            <div class="quiz-option" data-correct="false">D) --expose-yarn</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CERTIFICATE PANEL -->
+      <section class="content-panel" id="panel-7">
+        <h1>Completion Certificate</h1>
+        <p class="subtitle">Enter your name below to generate your official verification certificate.</p>
+        <div class="cert-canvas-container">
+          <input type="text" id="studentNameInput" class="cert-input" placeholder="Enter Your Full Name" oninput="generateCertificate()">
+          <canvas id="certCanvas" width="800" height="500"></canvas>
+          <button class="btn-nav" style="margin-top:15px; width:auto; padding: 10px 20px;" onclick="downloadCertificate()">📥 Download Certificate</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Sticky Bottom Navigation Footer -->
+    <footer class="nav-bar">
+      <button class="btn-nav btn-prev" id="btnPrev" onclick="changeStep(-1)">← Previous</button>
+      <button class="btn-nav btn-next" id="btnNext" onclick="changeStep(1)">Next Step →</button>
+    </footer>
+
+  </div>
+
+  <!-- JavaScript Controller Logic -->
+  <script>
+    const LAB_TITLE_STRING = "Lab 0: Google Cloud Dataproc and YARN Exploration";
+    const LAB_FILE_NAME = "Lab0";
+    const TOTAL_PANELS = 8;
+    let currentStep = 0;
+
+    function goToStep(stepIndex) {
+      if (stepIndex < 0 || stepIndex >= TOTAL_PANELS) return;
+      currentStep = stepIndex;
+
+      const panels = document.querySelectorAll('.content-panel');
+      panels.forEach((p, idx) => {
+        p.classList.toggle('active', idx === stepIndex);
+      });
+
+      const stepItems = document.querySelectorAll('.step-item');
+      stepItems.forEach((item, idx) => {
+        item.classList.toggle('active', idx === stepIndex);
+      });
+
+      const btnPrev = document.getElementById('btnPrev');
+      const btnNext = document.getElementById('btnNext');
+
+      if (btnPrev) btnPrev.disabled = (stepIndex === 0);
+
+      if (btnNext) {
+        if (stepIndex === TOTAL_PANELS - 1) {
+          btnNext.innerText = 'Completed 🎉';
+          btnNext.disabled = true;
+        } else if (stepIndex === TOTAL_PANELS - 2) {
+          btnNext.innerText = 'View Certificate →';
+          btnNext.disabled = false;
+        } else if (stepIndex === TOTAL_PANELS - 3) {
+          btnNext.innerText = 'Take Quiz →';
+          btnNext.disabled = false;
+        } else {
+          btnNext.innerText = 'Next Step →';
+          btnNext.disabled = false;
+        }
+      }
+
+      const contentArea = document.querySelector('.content-area');
+      if (contentArea) contentArea.scrollTop = 0;
+
+      if (stepIndex === TOTAL_PANELS - 1) {
+        generateCertificate();
+      }
+    }
+
+    function changeStep(delta) {
+      goToStep(currentStep + delta);
+    }
+
+    function switchOsTab(os) {
+      const btns = document.querySelectorAll('.os-tab-btn');
+      btns.forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-os') === os);
+      });
+      const contents = document.querySelectorAll('.os-content');
+      contents.forEach(c => {
+        c.classList.toggle('active', c.getAttribute('data-os') === os);
+      });
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      const icon = document.getElementById('themeIcon');
+      if (icon) icon.innerText = newTheme === 'dark' ? '🌙' : '☀️';
+
+      if (currentStep === TOTAL_PANELS - 1) {
+        generateCertificate();
+      }
+    }
+
+    function setupChecklists() {
+      const checklistItems = document.querySelectorAll('.task-checkbox-container');
+      checklistItems.forEach(item => {
+        item.addEventListener('click', () => {
+          item.classList.toggle('completed');
+          updateProgress();
+        });
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const total = document.querySelectorAll('.task-checkbox-container').length;
+      const completed = document.querySelectorAll('.task-checkbox-container.completed').length;
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      const bar = document.getElementById('progressBar');
+      const badge = document.getElementById('progressPercent');
+      if (bar) bar.style.width = percent + '%';
+      if (badge) badge.innerText = percent + '%';
+
+      const panels = document.querySelectorAll('.content-panel');
+      panels.forEach((panel, idx) => {
+        const tasksInPanel = panel.querySelectorAll('.task-checkbox-container');
+        if (tasksInPanel.length > 0) {
+          const doneInPanel = panel.querySelectorAll('.task-checkbox-container.completed');
+          const stepItem = document.querySelectorAll('.step-item')[idx];
+          if (stepItem) {
+            stepItem.classList.toggle('completed', tasksInPanel.length === doneInPanel.length);
+          }
+        }
+      });
+    }
+
+    function setupQuizListeners() {
+      const quizCards = document.querySelectorAll('.quiz-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            options.forEach(o => o.classList.remove('selected', 'correct', 'incorrect'));
+            opt.classList.add('selected');
+            const isCorrect = opt.getAttribute('data-correct') === 'true';
+            if (isCorrect) {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') o.classList.add('correct');
+              });
+            }
+          });
+        });
+      });
+    }
+
+    function copyCode(btn) {
+      const container = btn.closest('.code-block-container');
+      const code = container.querySelector('pre.code-content').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        setTimeout(() => btn.innerText = orig, 2000);
+      });
+    }
+
+    function generateCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const name = document.getElementById('studentNameInput').value.trim() || 'Learner Name';
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+      ctx.fillStyle = isLight ? '#ffffff' : '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = '#8b5cf6';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(25, 25, canvas.width - 50, canvas.height - 50);
+
+      ctx.fillStyle = isLight ? '#0f172a' : '#f8fafc';
+      ctx.font = 'bold 28px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('CERTIFICATE OF COMPLETION', canvas.width / 2, 90);
+
+      ctx.fillStyle = '#8b5cf6';
+      ctx.font = '600 16px Inter, sans-serif';
+      ctx.fillText('THIS IS PROUDLY PRESENTED TO', canvas.width / 2, 130);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 32px Inter, sans-serif';
+      ctx.fillText(name, canvas.width / 2, 195);
+
+      ctx.strokeStyle = isLight ? '#e2e8f0' : '#334155';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2 - 150, 215);
+      ctx.lineTo(canvas.width / 2 + 150, 215);
+      ctx.stroke();
+
+      ctx.fillStyle = isLight ? '#475569' : '#94a3b8';
+      ctx.font = '15px Inter, sans-serif';
+      ctx.fillText('For successfully completing the interactive hands-on training lab:', canvas.width / 2, 255);
+
+      ctx.fillStyle = isLight ? '#0f172a' : '#f8fafc';
+      ctx.font = 'bold 20px Inter, sans-serif';
+      ctx.fillText(LAB_TITLE_STRING, canvas.width / 2, 295);
+
+      const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      ctx.fillStyle = isLight ? '#64748b' : '#64748b';
+      ctx.font = '14px Inter, sans-serif';
+      ctx.fillText('Issued on: ' + dateStr, canvas.width / 2, 345);
+
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, 410, 30, 0, Math.PI * 2);
+      ctx.fillStyle = '#8b5cf6';
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px Inter, sans-serif';
+      ctx.fillText('★', canvas.width / 2, 416);
+    }
+
+    function downloadCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      if (!canvas) return;
+      const link = document.createElement('a');
+      link.download = LAB_FILE_NAME + '_Certificate.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setupChecklists();
+      setupQuizListeners();
+      goToStep(0);
+    });
+  </script>
+</body>
+</html>

@@ -33,55 +33,26 @@ Activate Cloud Shell (`>_` in the top right of the GCP Console) and set up the c
 
 ```bash
 # Auto-detect your active GCP Project ID
-export PROJECT_ID=your project id
+export PROJECT_ID=$(gcloud config get-value project)
 
-# Choose a region (e.g. us-east1 or us-central1)
-export REGION=us-east1
+# Choose a region and zone (e.g. us-central1 / us-central1-a)
+export REGION=us-central1
+export ZONE=us-central1-a
 
 # Define your cluster name
-export CLUSTER_NAME="lab0-dataproc-cluster"
+export CLUSTER_NAME="cluster-lab"
 
 echo "Project ID   : $PROJECT_ID"
 echo "Region       : $REGION"
+echo "Zone         : $ZONE"
 echo "Cluster Name : $CLUSTER_NAME"
 ```
 
 ```bash
 gcloud auth login
+gcloud config set project $PROJECT_ID
 ```
 ---
-
-## Step 2: Enable Dataproc, Compute Engine, and Resource Manager APIs
-
-Run the following command to enable the necessary Google Cloud APIs in your project:
-
-```bash
-gcloud services enable \
-    dataproc.googleapis.com \
-    compute.googleapis.com \
-    cloudresourcemanager.googleapis.com \
-    --project=${PROJECT_ID} 
-```
-
----
-
----
-
-## Step 3: Grant Storage Permissions to the Compute Engine Service Account
-
-Dataproc worker VMs use the default Compute Engine service account to read and write to auto-generated staging and temporary Cloud Storage buckets. If this service account does not have sufficient permissions, your cluster creation will fail.
-
-Run the following commands in Cloud Shell to grant the **Storage Admin** role to this service account:
-
-```bash
-# Retrieve your project number
-export PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
-
-# Grant the Storage Admin role to the Compute Engine default service account
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-    --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-    --role="roles/storage.admin"
-```
 
 ---
 
@@ -94,10 +65,12 @@ Create a cost-effective single-node cluster. We explicitly enable **Component Ga
 ```bash
 gcloud dataproc clusters create ${CLUSTER_NAME} \
     --region=${REGION} \
+    --zone=${ZONE} \
     --single-node \
     --master-machine-type=n2-standard-4 \
     --image-version=2.2-debian12 \
     --enable-component-gateway \
+    --optional-components=JUPYTER \
     --project=${PROJECT_ID}
 ```
 
@@ -134,7 +107,7 @@ This submits the application to the Dataproc master node, which delegates the jo
 
 ---
 
-## Step 7: Verify the Application on YARN UI
+## Step 7: Verify the Application on YARN UI & Dataproc Jobs CLI
 
 1. Switch back to your **YARN ResourceManager** browser tab (opened in Step 5).
 2. Refresh the page. You should now see the active Spark application running under the name:
@@ -144,13 +117,23 @@ This submits the application to the Dataproc master node, which delegates the jo
    - Click the application ID (e.g. `application_123456789_0001`) to see container details, allocated memory, vCPUs, and the scheduler queue allocation.
    - Click the **Logs** or **History** links to inspect the standard stdout/stderr logs managed by YARN.
 
----
-
-## Step 8: Cleanup
-
-When finished, delete the Dataproc cluster to avoid charges:
+5. Alternatively, list and describe job execution details via `gcloud dataproc jobs` CLI:
 
 ```bash
-# In your Cloud Shell terminal
-gcloud dataproc clusters delete ${CLUSTER_NAME} --region=${REGION} --quiet
+# List Dataproc jobs submitted to the cluster
+gcloud dataproc jobs list --region=${REGION}
+
+# Inspect detailed job status and STDOUT/STDERR logs
+gcloud dataproc jobs describe [JOB_ID] --region=${REGION}
+```
+
+---
+
+## Step 8: Keep Cluster Active for Subsequent Labs
+
+Do **NOT** delete the Dataproc cluster at this stage. Keep the cluster running in state `RUNNING` as it will be reused for subsequent training labs:
+
+```bash
+# Verify the cluster remains running for upcoming labs
+gcloud dataproc clusters list --region=${REGION}
 ```

@@ -45,7 +45,7 @@ Now that your connection is created and has a service account, you must grant it
 
 Run the following in **Cloud Shell** (replace `CONNECTION_SA` with the email you copied in Step 2):
 ```bash
-export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_ID=your_project_id
 export BUCKET_NAME="${PROJECT_ID}-bq-iceberg-warehouse"
 export CONNECTION_SA="bqcx-xxxx@gcp-sa-bigquery-condel.iam.gserviceaccount.com"
 
@@ -66,7 +66,6 @@ To ensure your account can run Iceberg queries, grant the necessary BigQuery rol
 
 Run the following in **Cloud Shell** (it will automatically resolve your logged-in account):
 ```bash
-export PROJECT_ID=$(gcloud config get-value project)
 export USER_EMAIL=$(gcloud config get-value account)
 
 # Grant Table Creation Roles
